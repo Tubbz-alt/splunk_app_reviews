@@ -1,0 +1,107 @@
+<form>
+  <label>App Review Comment search</label>
+  <description>Search review comments by rating, version, country or keyword.</description>
+  <fieldset submitButton="false"></fieldset>
+  <row>
+    <panel>
+      <title>User comments</title>
+      <input type="text" searchWhenChanged="true" token="search_tok">
+        <label>Search</label>
+        <default></default>
+        <suffix>*</suffix>
+      </input>
+      <input type="time" searchWhenChanged="true">
+        <label>Select time range</label>
+        <default>
+          <earliest>-30d</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+      <input type="dropdown" token="country_tok" searchWhenChanged="true">
+        <label>Country</label>
+        <default>*</default>
+        <choice value="*">ALL</choice>
+        <search>
+          <query>index=product sourcetype=store_review | stats count by country | dedup country | sort country</query>
+        </search>
+        <fieldForLabel>country</fieldForLabel>
+        <fieldForValue>country</fieldForValue>
+      </input>
+      <input type="dropdown" token="store_tok" searchWhenChanged="true">
+        <label>Store</label>
+        <default>*</default>
+        <choice value="*">ALL</choice>
+        <search>
+          <query>index=product sourcetype=store_review | stats count by store | dedup store | sort store desc</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <fieldForLabel>store</fieldForLabel>
+        <fieldForValue>store</fieldForValue>
+      </input>
+      <input type="dropdown" token="version_tok" searchWhenChanged="true">
+        <label>Version</label>
+        <default>*</default>
+        <choice value="*">ALL</choice>
+        <search>
+          <query>index=product sourcetype=store_review store=$store_tok$ | dedup id | fillnull value=NULL| eval version=replace('version',"(.*)\-(\d+)$","\1") | dedup version | table version | sort - version</query>
+        </search>
+        <fieldForLabel>version</fieldForLabel>
+        <fieldForValue>version</fieldForValue>
+      </input>
+      <input type="dropdown" token="rating_tok" searchWhenChanged="true">
+        <label>Rating</label>
+        <default>*</default>
+        <choice value="*">ALL</choice>
+        <search>
+          <query>index=product sourcetype=store_review | stats count by rating | dedup rating | sort rating</query>
+        </search>
+        <fieldForLabel>rating</fieldForLabel>
+        <fieldForValue>rating</fieldForValue>
+      </input>
+      <chart>
+        <search>
+          <query>index=product sourcetype=store_review store=$store_tok$ country=$country_tok$ rating=$rating_tok$ (content_en=*$search_tok$ OR title_en=*$search_tok$)| dedup id | timechart count span=1d by store</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+      </chart>
+      <table>
+        <search>
+          <query>index=product sourcetype=store_review store=$store_tok$ country=$country_tok$ rating=$rating_tok$ (content_en=*$search_tok$ OR title_en=*$search_tok$)| dedup id | replace "null" with " " in title_en
+| eval version=replace('version',"(.*)\-(\d+)$","\1") | rename rating AS Rating store as Store country as Country title_en as Title content_en as Content _time as Time version as Version | eval Date=strftime(Time, "%d/%m/%y") |table Rating  Store Version Country Date Title Content</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="count">15</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+</form>

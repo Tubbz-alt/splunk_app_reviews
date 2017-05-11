@@ -1,0 +1,237 @@
+<form refresh="10000">
+  <label>Rating Analysis</label>
+  <description>Dashboard analysing the apps ratings over time</description>
+  <fieldset submitButton="false"></fieldset>
+  <row>
+    <panel>
+      <title>Average rating across all versions</title>
+      <input type="dropdown" token="store_tok" searchWhenChanged="true">
+        <label>Store</label>
+        <search>
+          <query>index=product sourcetype=store_review | stats count by store | dedup store | sort store desc</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <fieldForLabel>store</fieldForLabel>
+        <fieldForValue>store</fieldForValue>
+      </input>
+      <viz type="Splunk_ML_Toolkit.OutliersViz">
+        <search>
+          <query>index=product country=* sourcetype=store_review store=$store_tok$ earliest=-120d | dedup id | timechart avg(rating) as avg4h span=4h | streamstats window=84 mean(avg4h) as mean, stdev(avg4h) as stdev | eval upper = mean+(stdev) | eval lower = mean-(stdev) | table _time avg4h mean upper lower | timechart span=1d avg(mean) as "Moving Average"  avg(upper) as "Mean+sig" avg(lower) as "Mean-sig"  |  appendcols [ search index=product country=* sourcetype=store_review store=$store_tok$ earliest=-120d | timechart span=1d avg(rating) as  "Daily Average"  ] | table _time "Daily Average" "Mean-sig" "Mean+sig"</query>
+          <earliest>0</earliest>
+          <latest>now</latest>
+        </search>
+      </viz>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <single>
+        <title>Overall Average Rating</title>
+        <search>
+          <query>index=product store=$store_tok$ | dedup id | stats avg(rating)</query>
+          <earliest>0</earliest>
+          <latest></latest>
+        </search>
+        <option name="numberPrecision">0.00</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Latest Version Rating</title>
+        <search>
+          <query>index=product store=$store_tok$ version !=null | dedup id | eval version=replace('version',"(.*)\-(\d+)$","\1") | stats avg(rating) as Rating by version | sort -version limit=1 | table Rating</query>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="linkView">search</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="useColors">0</option>
+      </single>
+    </panel>
+    <panel>
+      <single>
+        <title>Yesterday's Rating</title>
+        <search>
+          <query>index=product store=$store_tok$ latest=-0d@d earliest=-40d| dedup id | timechart span=1d avg(rating) as DailyRating  | fillnull value=NULL</query>
+          <earliest>-30d</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="colorBy">trend</option>
+        <option name="drilldown">none</option>
+        <option name="linkView">search</option>
+        <option name="numberPrecision">0.00</option>
+        <option name="trendInterval">-7d</option>
+        <option name="underLabel">Compared to last 7 days</option>
+        <option name="useColors">1</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Rating distribution</title>
+      <input type="time" searchWhenChanged="true" token="time_tok">
+        <label>Select time range</label>
+        <default>
+          <earliest>-30d</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+      <input type="dropdown" token="country_tok" searchWhenChanged="true">
+        <label>Country</label>
+        <default>*</default>
+        <choice value="*">ALL</choice>
+        <search>
+          <query>index=product sourcetype=store_review store=$store_tok$ | stats count by country | dedup country | sort country</query>
+        </search>
+        <fieldForLabel>country</fieldForLabel>
+        <fieldForValue>country</fieldForValue>
+      </input>
+      <input type="dropdown" token="version_tok" searchWhenChanged="true">
+        <label>Version</label>
+        <default>*</default>
+        <choice value="*">ALL</choice>
+        <search>
+          <query>index=product sourcetype=store_review store=$store_tok$ earliest=$time_tok.earliest$ latest=$time_tok.latest$ | dedup id | fillnull value=NULL| eval version=replace('version',"(.*)\-(\d+)$","\1") | dedup version | table version | sort - version</query>
+        </search>
+        <fieldForLabel>version</fieldForLabel>
+        <fieldForValue>version</fieldForValue>
+      </input>
+      <chart>
+        <search>
+          <query>index=product sourcetype=store_review store=$store_tok$ country=$country_tok$ earliest=$time_tok.earliest$ latest=$time_tok.latest$ | dedup id |  eval version=replace('version',"(.*)\-(\d+)$","\1") | search version=$version_tok$ | rename rating AS Rating store as Store country as Country | stats count by Rating  | sort - Rating</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="height">229</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Rating by version</title>
+      <input type="time" searchWhenChanged="true" token="time2_tok">
+        <label>Select time range</label>
+        <default>
+          <earliest>-3mon</earliest>
+          <latest>now</latest>
+        </default>
+      </input>
+      <chart>
+        <search>
+          <query>index=product sourcetype=store_review store=$store_tok$ (content_en!=NULL AND content_en!=null) (version!=null) earliest=$time2_tok.earliest$ latest=$time2_tok.latest$ | dedup id | fillnull value=NULL| eval version=replace('version',"(.*)\-(\d+)$","\1") |  chart eval(avg(rating)) as "Rating" by version | trendline  sma3(Rating) as "Trend (Rating)"</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisLabelsY.majorUnit">1</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.maximumNumber">5</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.overlayFields">"Trend (Rating)"</option>
+        <option name="charting.chart.showDataLabels">none</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.fieldColors">{"Rating":0x04B70B,"Trend (Rating)":0x026106 }</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.layout.splitSeries.allowIndependentYRanges">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+        <option name="height">312</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Happiest Countries (with &gt;50 reviews)</title>
+      <table>
+        <search>
+          <query>index=product sourcetype=store_review store=$store_tok$ | dedup id | stats count as Count avg(rating) as "Average Rating" by country | where Count&gt;50 | sort - "Average Rating" | table country "Average Rating"</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">20</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+    <panel>
+      <title>Rating by Country</title>
+      <map>
+        <search>
+          <query>index=product sourcetype=store_review store=$store_tok$ | dedup id | stats count as Count avg(rating) as "Average Rating" by country | where Count&gt;50 | sort - "Average Rating" 
+| rename country AS iso2
+| lookup geo_attr_countries iso2 OUTPUT country
+| fields+ "Average Rating", country, geom
+| geom geo_countries featureIdField="country"</query>
+          <earliest>-30d@d</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">all</option>
+        <option name="height">597</option>
+        <option name="mapping.choroplethLayer.colorBins">8</option>
+        <option name="mapping.choroplethLayer.colorMode">divergent</option>
+        <option name="mapping.choroplethLayer.maximumColor">0x039E18</option>
+        <option name="mapping.choroplethLayer.minimumColor">0xDA4906</option>
+        <option name="mapping.choroplethLayer.neutralPoint">2.5</option>
+        <option name="mapping.choroplethLayer.shapeOpacity">0.75</option>
+        <option name="mapping.choroplethLayer.showBorder">1</option>
+        <option name="mapping.data.maxClusters">100</option>
+        <option name="mapping.map.center">(0,0)</option>
+        <option name="mapping.map.panning">1</option>
+        <option name="mapping.map.scrollZoom">0</option>
+        <option name="mapping.map.zoom">2</option>
+        <option name="mapping.markerLayer.markerMaxSize">50</option>
+        <option name="mapping.markerLayer.markerMinSize">10</option>
+        <option name="mapping.markerLayer.markerOpacity">0.8</option>
+        <option name="mapping.showTiles">1</option>
+        <option name="mapping.tileLayer.maxZoom">7</option>
+        <option name="mapping.tileLayer.minZoom">0</option>
+        <option name="mapping.tileLayer.tileOpacity">1</option>
+        <option name="mapping.type">choropleth</option>
+      </map>
+    </panel>
+  </row>
+</form>

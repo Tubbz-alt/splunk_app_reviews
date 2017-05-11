@@ -1,0 +1,15 @@
+<nav search_view="search" color="#8FC892">
+<view name="default" title="Home" default="true"/> 
+  <collection label="App Analysis">
+    <view name="rating_analysis"/>
+    <view name="rating_and_sentiment_analysis"/>
+    <view name="app_review_comment_search"/>
+  </collection>
+<collection label="Options">
+    <view name="pivot"/>
+    <view name="reports"/>
+    <view name="alerts"/>
+    <view name="dashboards"/>
+  </collection>
+  <view name="search"/>
+</nav>
