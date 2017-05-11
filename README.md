@@ -41,6 +41,6 @@ We've included some fake sample data for you to try the app with. Simply downloa
 Download the splunk-app-reviews folder and copy it to ${{SPLUNK_HOME}}/etc/apps. Restart Splunk and you should be good to go!
 *Note*: The app has only been tested for Splunk 6.5. Some dashboards require the sentiment analysis app which can be found [here](https://splunkbase.splunk.com/app/1179/).
 The result should look something like this:
-![alt text](https://raw.githubusercontent.com/shazam/app-store-reviews-and-translations/master/screenshot1.png)
-![alt text](https://raw.githubusercontent.com/shazam/app-store-reviews-and-translations/master/screenshot2.png)
-![alt text](https://raw.githubusercontent.com/shazam/app-store-reviews-and-translations/master/screenshot3.png)
+![alt text](https://raw.githubusercontent.com/shazam/splunk_app_reviews/master/screenshot1.png)
+![alt text](https://raw.githubusercontent.com/shazam/splunk_app_reviews/master/screenshot2.png)
+![alt text](https://raw.githubusercontent.com/shazam/splunk_app_reviews/master/screenshot3.png)
